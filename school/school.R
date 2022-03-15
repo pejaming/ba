@@ -1,0 +1,183 @@
+#安装包
+#install.packages('ggplot2')
+#install.packages('car')
+#install.packages("carData")
+library(car)
+
+#当前路径，改成你自己的目录
+setwd("/Users/liunz/code/ba/school")
+#getwd()
+
+#取消科学计数法
+options(scipen=200)
+
+#读取csv
+data <- read.csv('school.csv', fileEncoding = 'gbk',header=T)
+names(data) = c("city","academician","masterprogram","category","keysubject","doctoralprogram","is985","is211","isindependent","score")
+head(data)  # 展示前6行
+
+#数据探查
+dim(data)
+colnames(data)
+str(data)
+summary(data)
+
+print('数据探查结束')
+# 
+# data$x1=as.integer(stringr::str_extract_all(data$x1, '[-][0-9]+|[0-9]+',simplify = TRUE))
+# data$x2=as.integer(stringr::str_extract_all(data$x2, '[-][0-9]+|[0-9]+',simplify = TRUE))
+
+#定义变量
+city<-data$city
+academician<-data$academician
+masterprogram<-data$masterprogram
+category<-data$category
+keysubject<-data$keysubject
+doctoralprogram<-data$doctoralprogram
+is985<-data$is985
+is211<-data$is211
+isindependent<-data$isindependent
+score<-data$score
+
+
+par(family='STKaiti') # mac电脑显示中文的问题，windows电脑不用加这个代码
+par(family="ArialUnicodeMS") # mac电脑显示中文的问题
+
+#直方图
+par(mfrow = c(1,2))
+hist(score,xlab="score",ylab="样本数量",main=NULL)
+hist(log(score),xlab="score",ylab="样本数量",main=NULL)
+
+
+#直方图
+par(mfrow = c(1,2))
+hist(x1,xlab="最高气温",ylab="样本数量",main=NULL)
+hist(log(x1),xlab="最高气温",ylab="样本数量",main=NULL)
+
+
+#直方图
+par(mfrow = c(1,2))
+hist(x2,xlab="最低气温",ylab="样本数量",main=NULL)
+hist(log(x2),xlab="最低气温",ylab="样本数量",main=NULL)
+
+
+#直方图
+par(mfrow = c(1,2))
+hist(x3,xlab="",ylab="样本数量",main=NULL)
+hist(log(x3),xlab="风力",ylab="样本数量",main=NULL)
+
+par(mfrow = c(1,3))
+hist(x1,xlab="最高气温",ylab="样本数量",main=NULL)
+hist(x2,xlab="最低气温",ylab="样本数量",main=NULL)
+hist(x3,xlab="风力",ylab="样本数量",main=NULL)
+
+# 
+# 
+# #描述分析-全变量
+# N=sapply(data,length)
+# MU=sapply(data,mean)
+# SD=sapply(data,sd)
+# MIN=sapply(data,min)
+# MED=sapply(data,median)
+# MAX=sapply(data,max)
+# result=cbind(N,MU,SD,MIN,MED,MAX)
+# result
+# print('描述分析结束')
+
+#描述分析-City
+descrb=function(var){
+  Z=data[,var]
+  N=tapply(data$score,Z,length)
+  MU=tapply(data$score,Z,mean)
+  SD=tapply(data$score,Z,sd)
+  MIN=tapply(data$score,Z,min)
+  MED=tapply(data$score,Z,median)
+  MAX=tapply(data$score,Z,max)
+  result=cbind(N,MU,SD,MIN,MED,MAX)
+  result
+}
+descrb("city")
+
+par(family='STKaiti') # mac电脑显示中文的问题
+par(family="ArialUnicodeMS") # mac电脑显示中文的问题
+
+
+#分组箱线图
+tempdata <- within(data,{
+  aqilevel <- NA
+  aqilevel[data$Y>=0 & data$Y < 50]="优"
+  aqilevel[data$Y>= 50 & data$Y < 100] = "良"
+  aqilevel[data$Y>= 100 & data$Y < 150] = "轻度污染"
+  aqilevel[data$Y>= 150 & data$Y < 200] = "中度污染"
+  aqilevel[data$Y>= 200 & data$Y < 300] = "重度污染"
+  aqilevel[data$Y >=300] = "严重污染"
+})
+aqilevel = factor(tempdata$aqilevel, levels=c("优","良","轻度污染","中度污染","重度污染",'严重污染')) #排序
+boxplot(x1~aqilevel,xlab="AQI",ylab = "最高温度")
+boxplot(x2~aqilevel,xlab="AQI",ylab = "最低温度")
+boxplot(x3~aqilevel,xlab="AQI",ylab = "风力")
+boxplot(y~x3,xlab="风力",ylab = "AQI")
+
+
+#分组箱线图
+temp=as.factor((y>median(y)))
+levels(temp)=c("低","高")
+par(mfrow=c(1,3))
+boxplot(x1~temp,xlab="AQI",ylab = "最高温度")
+boxplot(x2~temp)
+boxplot(x3~temp)
+
+
+
+
+
+print('开始建立线性回归模型')
+#建立线性回归模型
+model <- lm(score~city+category+academician+masterprogram+keysubject+doctoralprogram+is985+is211+isindependent, data)
+#查看是否有共线性
+vif(model)
+#模型摘要
+summary(model)
+plot(fitted(model),resid(model),cex=1.2,pch=21,col="red",bg="orange",xlab="Fitted value",ylab="Residuals")
+
+# 
+# x1<-log(x1)
+# x2<-log(x2)
+# x3< log(x3)
+y<-log(y)
+
+
+#建立对数线性回归模型
+#model <- lm(y ~x1+x2+x3+x4+x5+x6, data)
+model_log <- lm(score~city+category+academician+masterprogram+keysubject+doctoralprogram+is985+is211+isindependent, data)
+
+#查看是否有共线性
+vif(model_log)
+#模型摘要
+summary(model_log)
+plot(fitted(model_log),resid(model_log),cex=1.2,pch=21,col="red",bg="orange",xlab="Fitted value",ylab="Residuals")
+
+
+#描述aic,bic
+ss=length(data[,1])
+
+aic=step(model_log,trace=F)
+vif(model_log)
+summary((aic))
+print("aic")
+
+bic=step(model_log,k=log(ss),trace=F)
+vif(model_log)
+summary((bic))
+print("bic")
+
+#(fitted(model_log),resid(model_log),cex=1.2,pch=21,col="red",bg="orange",xlab="Fitted value",ylab="Residuals")
+
+
+#模型预测
+#a <- data.frame(x = 222)
+#result <-  predict(model,a)
+#print(result)
+
+
+
